@@ -1,0 +1,6 @@
+{
+  "name": "Inked MD",
+  "description": "Local-first Markdown document studio, reader, editor, PDF exporter, and AI document assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

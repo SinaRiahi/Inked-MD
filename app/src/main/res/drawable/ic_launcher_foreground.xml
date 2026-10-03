@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Central Quill Shaft (spine running from tip at bottom-left up towards top-right) -->
+    <path
+        android:pathData="M30,78 C35,70 50,54 74,32"
+        android:strokeWidth="2.5"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round" />
+
+    <!-- Quill Nib tip -->
+    <path
+        android:pathData="M27,81 L30,76 L32,78 Z"
+        android:fillColor="#38BDF8" />
+
+    <!-- LEFT HALF: Smooth Organic Feather Vanes -->
+    <!-- Lower left vane -->
+    <path
+        android:pathData="M33,73 C30,68 28,60 38,58 C42,63 43,67 43,67 Z"
+        android:fillColor="#E0E7FF" />
+    <!-- Mid left vane -->
+    <path
+        android:pathData="M41,63 C34,55 33,45 47,44 C50,49 51,55 51,55 Z"
+        android:fillColor="#EEF2FF" />
+    <!-- Upper-mid left vane -->
+    <path
+        android:pathData="M49,52 C42,42 43,33 57,32 C60,37 60,43 60,43 Z"
+        android:fillColor="#FFFFFF" />
+    <!-- Feather top left tip -->
+    <path
+        android:pathData="M59,40 C54,30 58,24 74,31 C70,35 68,39 68,39 Z"
+        android:fillColor="#F8FAFC" />
+
+    <!-- Feather barb fine lines on left side -->
+    <path
+        android:pathData="M36,65 L30,60 M44,55 L36,49 M52,45 L45,39 M60,36 L54,30"
+        android:strokeWidth="1.2"
+        android:strokeColor="#C7D2FE"
+        android:strokeLineCap="round" />
+
+    <!-- RIGHT HALF: Digital Circuits, Pixels, Bits, and Matrix Grid -->
+    <!-- Digital right vane segments (stepped circuit paths) -->
+    <!-- Top-most digital pixel block -->
+    <path
+        android:pathData="M76,30 h6 v6 h-6 z"
+        android:fillColor="#38BDF8" />
+    <path
+        android:pathData="M84,33 h5 v5 h-5 z"
+        android:fillColor="#818CF8" />
+
+    <!-- Upper digital circuit branch -->
+    <path
+        android:pathData="M68,36 H78 V42 H72"
+        android:strokeWidth="1.8"
+        android:strokeColor="#38BDF8"
+        android:strokeLineCap="square" />
+    <!-- Digital circuit node dot -->
+    <path
+        android:pathData="M79,42 a2,2 0 1,0 0.01,0"
+        android:fillColor="#67E8F9" />
+
+    <!-- Mid-upper digital pixel blocks -->
+    <path
+        android:pathData="M70,44 h6 v6 h-6 z"
+        android:fillColor="#60A5FA" />
+    <path
+        android:pathData="M78,46 h5 v5 h-5 z"
+        android:fillColor="#38BDF8" />
+    <path
+        android:pathData="M85,49 h4 v4 h-4 z"
+        android:fillColor="#818CF8" />
+
+    <!-- Mid digital circuit trace -->
+    <path
+        android:pathData="M60,47 H68 V56 H77"
+        android:strokeWidth="1.8"
+        android:strokeColor="#818CF8"
+        android:strokeLineCap="square" />
+    <path
+        android:pathData="M77,56 a2.2,2.2 0 1,0 0.01,0"
+        android:fillColor="#A5B4FC" />
+
+    <!-- Floating pixel data bits (cyber feather dust) -->
+    <path
+        android:pathData="M66,58 h5 v5 h-5 z"
+        android:fillColor="#38BDF8" />
+    <path
+        android:pathData="M73,62 h4 v4 h-4 z"
+        android:fillColor="#67E8F9" />
+    <path
+        android:pathData="M52,58 H60 V65 H64"
+        android:strokeWidth="1.8"
+        android:strokeColor="#38BDF8"
+        android:strokeLineCap="square" />
+    <path
+        android:pathData="M57,67 h4 v4 h-4 z"
+        android:fillColor="#818CF8" />
+    <path
+        android:pathData="M46,68 h4 v4 h-4 z"
+        android:fillColor="#60A5FA" />
+
+    <!-- Micro circuit connection dots -->
+    <path
+        android:pathData="M64,65 a1.8,1.8 0 1,0 0.01,0"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M82,39 a1.5,1.5 0 1,0 0.01,0"
+        android:fillColor="#38BDF8" />
+</vector>
