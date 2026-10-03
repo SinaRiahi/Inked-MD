@@ -82,19 +82,19 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 
-      // Comments
-      escaped = escaped.replace(/(\/\/[^\n]*|#[^\n]*)/g, '<span style="color:#868e96;font-style:italic;">$1</span>');
-      // Multi-line comments
-      escaped = escaped.replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color:#868e96;font-style:italic;">$1</span>');
-      // Strings
-      escaped = escaped.replace(/(["'`].*?["'`])/g, '<span style="color:#2b8a3e;">$1</span>');
-      // Numbers
-      escaped = escaped.replace(/\b(\d+(\.\d+)?)\b/g, '<span style="color:#d9480f;">$1</span>');
+      // 1. Strings first (match string literals before any HTML span tags are introduced)
+      escaped = escaped.replace(/(["'`][^"'`\n]*?["'`])/g, '<span class="tok-str">$1</span>');
+      // 2. Single-line comments
+      escaped = escaped.replace(/(\/\/[^\n]*|#[^\n]*)/g, '<span class="tok-comment">$1</span>');
+      // 3. Multi-line comments
+      escaped = escaped.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="tok-comment">$1</span>');
+      // 4. Numbers
+      escaped = escaped.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
 
-      // Keywords
+      // 5. Keywords
       if (kwList.length > 0) {
         const regex = new RegExp(`\\b(${kwList.join('|')})\\b`, 'g');
-        escaped = escaped.replace(regex, '<span style="color:#7048e8;font-weight:600;">$1</span>');
+        escaped = escaped.replace(regex, '<span class="tok-kw">$1</span>');
       }
 
       return escaped;
@@ -354,7 +354,7 @@
       for (let i = 0; i < targets.length; i++) {
         const el = targets[i];
         const code = decodeURIComponent(el.getAttribute('data-code'));
-        const renderId = `m-svg-${Date.now()}-${i}`;
+        const renderId = `msvg${Date.now()}_${i}`;
         try {
           const res = await m.render(renderId, code);
           const svgCode = typeof res === 'string' ? res : (res && res.svg ? res.svg : '');
@@ -363,8 +363,24 @@
           }
         } catch (err) {
           console.warn('Mermaid render notice (keeping native SVG):', err);
+        } finally {
+          // Immediately purge any temporary or duplicate elements appended by mermaid to document.body
+          const strayNodes = document.querySelectorAll(`body > svg, body > [id^="d${renderId}"], body > [id^="${renderId}"], body > [id^="dmsvg"]`);
+          strayNodes.forEach(s => {
+            if (s.id !== 'document-container') {
+              s.remove();
+            }
+          });
         }
       }
+
+      // Final sweep to remove any remaining stray mermaid DOM nodes
+      const allStrays = document.querySelectorAll('body > svg, body > [id^="dmsvg"], body > [id^="m-svg"], body > [id^="dmermaid"]');
+      allStrays.forEach(s => {
+        if (s.id !== 'document-container') {
+          s.remove();
+        }
+      });
     }
   };
 
@@ -872,10 +888,12 @@
     }
   }
 
+  notifyReady();
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    setTimeout(notifyReady, 0);
+    setTimeout(notifyReady, 50);
   } else {
     window.addEventListener('DOMContentLoaded', notifyReady);
+    window.addEventListener('load', notifyReady);
   }
 
 })();

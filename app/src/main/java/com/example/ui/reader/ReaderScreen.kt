@@ -6,6 +6,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -66,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.DocumentEntity
@@ -143,7 +146,232 @@ fun ReaderScreen(
         }
     }
 
-    Scaffold { innerPadding ->
+    Scaffold(
+        topBar = {
+            AnimatedVisibility(
+                visible = isAppBarVisible,
+                enter = slideInVertically { -it } + fadeIn(),
+                exit = slideOutVertically { -it } + fadeOut()
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 3.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        TopAppBar(
+                            title = {
+                                Column {
+                                    Text(
+                                        text = document.title,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "${readingProgress.toInt()}% read • ~$readingTimeMin min read • $wordCount words",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            },
+                            navigationIcon = {
+                                IconButton(onClick = onNavigateBack) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                                }
+                            },
+                            actions = {
+                                // Search Toggle
+                                IconButton(onClick = {
+                                    isSearchActive = !isSearchActive
+                                    if (!isSearchActive) webController.clearSearch()
+                                }) {
+                                    Icon(Icons.Default.Search, contentDescription = "Search")
+                                }
+
+                                // Table of Contents
+                                IconButton(onClick = { showTocSheet = true }) {
+                                    Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Table of Contents")
+                                }
+
+                                // Reading Preferences
+                                IconButton(onClick = { showPreferencesSheet = true }) {
+                                    Icon(Icons.Default.FormatSize, contentDescription = "Typography and Theme")
+                                }
+
+                                // Edit Document
+                                IconButton(onClick = onEditDocument) {
+                                    Icon(Icons.Default.Edit, contentDescription = "Edit Note")
+                                }
+
+                                // More Actions Menu
+                                IconButton(onClick = { showMoreMenu = true }) {
+                                    Icon(Icons.Default.MoreVert, contentDescription = "More")
+                                }
+
+                                DropdownMenu(
+                                    expanded = showMoreMenu,
+                                    onDismissRequest = { showMoreMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("AI Assistant") },
+                                        leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            showAIAssistant = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Export Vector PDF") },
+                                        leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            webController.webView?.let { wb ->
+                                                PdfExportManager.exportToPdf(context, wb, document.title)
+                                            }
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Cover Page Settings") },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            showCoverDialog = true
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Scroll to Top") },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            webController.scrollToTop()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Scroll to Bottom") },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            webController.scrollToBottom()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Copy Entire Markdown") },
+                                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            clipboardManager.setText(AnnotatedString(document.content))
+                                            Toast.makeText(context, "Full markdown copied to clipboard", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Share Markdown") },
+                                        leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/markdown"
+                                                putExtra(Intent.EXTRA_SUBJECT, document.title)
+                                                putExtra(Intent.EXTRA_TEXT, document.content)
+                                            }
+                                            context.startActivity(Intent.createChooser(sendIntent, "Share Document"))
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text(if (document.isFavorite) "Remove from Favorites" else "Add to Favorites") },
+                                        leadingIcon = {
+                                            Icon(
+                                                if (document.isFavorite) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                                                contentDescription = null
+                                            )
+                                        },
+                                        onClick = {
+                                            showMoreMenu = false
+                                            onSaveDocument(document.copy(isFavorite = !document.isFavorite))
+                                        }
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
+                        )
+
+                        // Thin Reading Progress Bar
+                        LinearProgressIndicator(
+                            progress = { (readingProgress / 100f).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(2.5.dp),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        )
+
+                        // In-Document Search Panel
+                        if (isSearchActive) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                tonalElevation = 4.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    OutlinedTextField(
+                                        value = searchQuery,
+                                        onValueChange = {
+                                            searchQuery = it
+                                            webController.search(it, true)
+                                        },
+                                        placeholder = { Text("Search document…") },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                                        ),
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                        keyboardActions = KeyboardActions(onSearch = {
+                                            webController.search(searchQuery, true)
+                                        })
+                                    )
+
+                                    if (searchCount > 0) {
+                                        Text(
+                                            text = "$currentMatchIndex of $searchCount",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+
+                                    IconButton(
+                                        onClick = { webController.search(searchQuery, false) },
+                                        enabled = searchCount > 0
+                                    ) {
+                                        Icon(Icons.Default.ArrowUpward, contentDescription = "Previous Match")
+                                    }
+
+                                    IconButton(
+                                        onClick = { webController.search(searchQuery, true) },
+                                        enabled = searchCount > 0
+                                    ) {
+                                        Icon(Icons.Default.ArrowDownward, contentDescription = "Next Match")
+                                    }
+
+                                    IconButton(onClick = {
+                                        isSearchActive = false
+                                        webController.clearSearch()
+                                    }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Close Search")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -191,224 +419,6 @@ fun ReaderScreen(
                     currentMatchIndex = current
                 }
             )
-
-            // Auto-Hiding Top Bar & Reading Progress
-            AnimatedVisibility(
-                visible = isAppBarVisible,
-                enter = slideInVertically { -it },
-                exit = slideOutVertically { -it },
-                modifier = Modifier.align(Alignment.TopCenter)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    text = document.title,
-                                    maxLines = 1,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "${readingProgress.toInt()}% read • ~$readingTimeMin min read • $wordCount words",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onNavigateBack) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                            }
-                        },
-                        actions = {
-                            // Search Toggle
-                            IconButton(onClick = {
-                                isSearchActive = !isSearchActive
-                                if (!isSearchActive) webController.clearSearch()
-                            }) {
-                                Icon(Icons.Default.Search, contentDescription = "Search")
-                            }
-
-                            // Table of Contents
-                            IconButton(onClick = { showTocSheet = true }) {
-                                Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Table of Contents")
-                            }
-
-                            // Reading Preferences
-                            IconButton(onClick = { showPreferencesSheet = true }) {
-                                Icon(Icons.Default.FormatSize, contentDescription = "Typography and Theme")
-                            }
-
-                            // Edit Document
-                            IconButton(onClick = onEditDocument) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit Note")
-                            }
-
-                            // More Actions Menu
-                            IconButton(onClick = { showMoreMenu = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "More")
-                            }
-
-                            DropdownMenu(
-                                expanded = showMoreMenu,
-                                onDismissRequest = { showMoreMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("AI Assistant") },
-                                    leadingIcon = { Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        showAIAssistant = true
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Export PDF") },
-                                    leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        webController.webView?.let { wb ->
-                                            PdfExportManager.exportToPdf(context, wb, document.title)
-                                        }
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Cover Page Settings") },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        showCoverDialog = true
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Scroll to Top") },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        webController.scrollToTop()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Scroll to Bottom") },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        webController.scrollToBottom()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Copy Entire Markdown") },
-                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        clipboardManager.setText(AnnotatedString(document.content))
-                                        Toast.makeText(context, "Full markdown copied to clipboard", Toast.LENGTH_SHORT).show()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Share Markdown") },
-                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null) },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/markdown"
-                                            putExtra(Intent.EXTRA_SUBJECT, document.title)
-                                            putExtra(Intent.EXTRA_TEXT, document.content)
-                                        }
-                                        context.startActivity(Intent.createChooser(sendIntent, "Share Document"))
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(if (document.isFavorite) "Remove from Favorites" else "Add to Favorites") },
-                                    leadingIcon = {
-                                        Icon(
-                                            if (document.isFavorite) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                                            contentDescription = null
-                                        )
-                                    },
-                                    onClick = {
-                                        showMoreMenu = false
-                                        onSaveDocument(document.copy(isFavorite = !document.isFavorite))
-                                    }
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                        )
-                    )
-
-                    // Thin Reading Progress Bar
-                    LinearProgressIndicator(
-                        progress = { readingProgress / 100f },
-                        modifier = Modifier.fillMaxWidth().height(2.5.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        trackColor = Color.Transparent
-                    )
-
-                    // In-Document Search Panel
-                    if (isSearchActive) {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            tonalElevation = 4.dp
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = searchQuery,
-                                    onValueChange = {
-                                        searchQuery = it
-                                        webController.search(it, true)
-                                    },
-                                    placeholder = { Text("Search document…") },
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                                    ),
-                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                    keyboardActions = KeyboardActions(onSearch = {
-                                        webController.search(searchQuery, true)
-                                    })
-                                )
-
-                                if (searchCount > 0) {
-                                    Text(
-                                        text = "$currentMatchIndex of $searchCount",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-
-                                IconButton(
-                                    onClick = { webController.search(searchQuery, false) },
-                                    enabled = searchCount > 0
-                                ) {
-                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Previous Match")
-                                }
-
-                                IconButton(
-                                    onClick = { webController.search(searchQuery, true) },
-                                    enabled = searchCount > 0
-                                ) {
-                                    Icon(Icons.Default.ArrowDownward, contentDescription = "Next Match")
-                                }
-
-                                IconButton(onClick = {
-                                    isSearchActive = false
-                                    webController.clearSearch()
-                                }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Close Search")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 

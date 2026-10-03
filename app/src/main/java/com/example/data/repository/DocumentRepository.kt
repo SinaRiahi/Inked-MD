@@ -18,20 +18,22 @@ class DocumentRepository(
     val allDocuments: Flow<List<DocumentEntity>> = documentDao.getAllDocuments()
 
     suspend fun initializeSamplesIfNeeded() = withContext(Dispatchers.IO) {
-        val count = documentDao.getDocumentCount()
-        val samples = SampleDocuments.getInitialDocuments()
-        if (count == 0) {
-            samples.forEach { doc ->
-                documentDao.insertDocument(doc)
+        val samples = SampleDocuments.getInitialDocuments() // Contains only "Welcome to Inked MD"
+        val existing = documentDao.getAllDocumentsList()
+
+        // Remove old prebuilt documents as requested
+        existing.forEach { doc ->
+            if (doc.title == "Computer Networks: Transport Layer" || doc.title == "Distributed Systems & Cloud Architecture") {
+                documentDao.deleteDocument(doc)
             }
-        } else {
-            val existing = documentDao.getAllDocumentsList()
-            existing.forEach { doc ->
-                val matchingSample = samples.find { it.title == doc.title }
-                if (matchingSample != null && doc.content != matchingSample.content) {
-                    documentDao.updateDocument(doc.copy(content = matchingSample.content))
-                }
-            }
+        }
+
+        val welcomeSample = samples.firstOrNull() ?: return@withContext
+        val welcomeDoc = existing.find { it.title == welcomeSample.title }
+        if (welcomeDoc == null) {
+            documentDao.insertDocument(welcomeSample)
+        } else if (welcomeDoc.content != welcomeSample.content) {
+            documentDao.updateDocument(welcomeDoc.copy(content = welcomeSample.content))
         }
     }
 
